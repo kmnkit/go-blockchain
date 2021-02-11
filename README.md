@@ -49,3 +49,7 @@ Search
 ## 12. Add Method to Dictionary
 
 Add Method
+
+## 13. Add Method to Dictionary(2)
+
+Add Method
