@@ -25,3 +25,14 @@ if문에서만 쓰기 위한 variable 생성. if문 사용.
 구조체
 
 ## 7. Mini Bank
+
+Bank Project 시작 (계좌 만들기)
+
+## 8. Methods(1)
+
+Method(1)
+
+## 9. Methods(2)
+
+Method(2)
+Error 체크 추가
