@@ -11,3 +11,17 @@ if문에서만 쓰기 위한 variable 생성. if문 사용.
 ## 3. Pointer
 
 포인터.
+
+## 4. Slice
+
+슬라이스
+
+## 5. map
+
+맵
+
+## 6. struct
+
+구조체
+
+## 7. Mini Bank

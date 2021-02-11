@@ -1,16 +1,12 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
 
-type person struct {
-	name    string
-	age     int
-	favFood []string // slice
-
-}
+	"github.com/kmnkit/learngo/banking"
+)
 
 func main() {
-	favFood := []string{"Galbi", "Chicken"}
-	marco := person{name: "Marco", age: 20, favFood: favFood}
-	fmt.Println(marco.name)
+	account := banking.NewAccount("Marco")
+	fmt.Println(account)
 }
