@@ -7,3 +7,7 @@
 ## 2. if문
 
 if문에서만 쓰기 위한 variable 생성. if문 사용.
+
+## 3. Pointer
+
+포인터.
