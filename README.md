@@ -36,3 +36,8 @@ Method(1)
 
 Method(2)
 Error 체크 추가
+
+## 10. Methods(3)
+
+Methods(3)
+SPrint

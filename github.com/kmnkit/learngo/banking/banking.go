@@ -1,6 +1,9 @@
 package banking
 
-import "errors"
+import (
+	"errors"
+	"fmt"
+)
 
 var errNoMoney = errors.New("인출 할 수 없습니다. You are Poor!!!!")
 
@@ -33,4 +36,18 @@ func (a *Account) Withdraw(amount int) error {
 // Balance of the Account
 func (a Account) Balance() int {
 	return a.balance
+}
+
+// ChangeOwner
+func (a *Account) ChangeOwner(newOwner string) {
+	a.owner = newOwner
+}
+
+// Owner
+func (a Account) Owner() string {
+	return a.owner
+}
+
+func (a Account) String() string {
+	return fmt.Sprint(a.Owner(), "'s account.\nHas: ", a.Balance())
 }
