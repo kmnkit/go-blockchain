@@ -41,3 +41,7 @@ Error 체크 추가
 
 Methods(3)
 SPrint
+
+## 11. Dictionary
+
+Search
