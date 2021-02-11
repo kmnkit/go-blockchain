@@ -45,3 +45,7 @@ SPrint
 ## 11. Dictionary
 
 Search
+
+## 12. Add Method to Dictionary
+
+Add Method
