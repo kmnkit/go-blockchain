@@ -1,13 +1,14 @@
 package main
 
 import (
+	"encoding/csv"
 	"fmt"
-	"log"
 	"net/http"
+	"os"
 	"strconv"
-	"strings"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/kmnkit/scrapper/utils"
 )
 
 type extractedJob struct {
@@ -20,41 +21,39 @@ type extractedJob struct {
 
 var baseURL string = "https://kr.indeed.com/jobs?q=python&l=seoul"
 
-func main() {
-	var jobs []extractedJob
-	totalPages := getPages()
-	for i := 0; i < totalPages-1; i++ {
-		extractedJobs := getPage(i)
-		jobs = append(jobs, extractedJobs...)
+// 구인 내용들을 csv 파일에 쓴다.
+func writeJobs(jobs []extractedJob) {
+	file, err := os.Create("jobs.csv")
+	utils.CheckErr(err)
+	w := csv.NewWriter(file)
+
+	defer w.Flush()
+
+	headers := []string{"Link", "Title", "Location", "Salary", "Summary"}
+	wErr := w.Write(headers)
+	utils.CheckErr(wErr)
+
+	for _, job := range jobs {
+		jobSlice := []string{
+			"https://kr.indeed.com/viewjob?jk=" + job.id,
+			job.title,
+			job.location,
+			job.salary,
+			job.summary,
+		}
+		jwErr := w.Write(jobSlice)
+		utils.CheckErr(jwErr)
 	}
-	fmt.Println(jobs)
 }
 
-func getPage(page int) []extractedJob {
-	var jobs []extractedJob
-	pageURL := baseURL + "&start=" + strconv.Itoa(page*10)
-	fmt.Println(pageURL)
-	res, err := http.Get(pageURL)
-	checkErr(err)
-	defer res.Body.Close()
-
-	doc, err := goquery.NewDocumentFromReader(res.Body)
-	checkErr(err)
-	searchCards := doc.Find(".jobsearch-SerpJobCard")
-	searchCards.Each(func(i int, card *goquery.Selection) {
-		job := extractJob(card)
-		jobs = append(jobs, job)
-	})
-	return jobs
-}
-
-func extractJob(card *goquery.Selection) extractedJob {
+// 구인 내용들을 모두 얻어온다.
+func extractJob(card *goquery.Selection, c chan<- extractedJob) {
 	id, _ := card.Attr("data-jk")
-	title := cleanString(card.Find(".title>a").Text())
-	location := cleanString(card.Find(".sjcl>.location").Text())
-	salary := cleanString(card.Find(".salaryText").Text())
-	summary := cleanString(card.Find(".summary").Text())
-	return extractedJob{
+	title := utils.CleanString(card.Find(".title>a").Text())
+	location := utils.CleanString(card.Find(".sjcl>.location").Text())
+	salary := utils.CleanString(card.Find(".salaryText").Text())
+	summary := utils.CleanString(card.Find(".summary").Text())
+	c <- extractedJob{
 		id:       id,
 		title:    title,
 		location: location,
@@ -63,20 +62,44 @@ func extractJob(card *goquery.Selection) extractedJob {
 	}
 }
 
-func cleanString(str string) string {
-	return strings.Join(strings.Fields(strings.TrimSpace(str)), " ")
-}
+// 한 페이지 내의 구인 내용들을 모두 얻는다.
+func getPage(page int, mainC chan<- []extractedJob) {
+	var jobs []extractedJob
+	c := make(chan extractedJob)
+	pageURL := baseURL + "&start=" + strconv.Itoa(page*10)
 
-func getPages() int {
-	pages := 0
-	res, err := http.Get(baseURL)
-	checkErr(err)
-	checkCode(res)
+	res, err := http.Get(pageURL)
+	utils.CheckErr(err)
+	utils.CheckCode(res)
 
 	defer res.Body.Close()
 
 	doc, err := goquery.NewDocumentFromReader(res.Body)
-	checkErr(err)
+	utils.CheckErr(err)
+
+	searchCards := doc.Find(".jobsearch-SerpJobCard")
+
+	searchCards.Each(func(i int, card *goquery.Selection) {
+		go extractJob(card, c)
+	})
+	for i := 0; i < searchCards.Length(); i++ {
+		job := <-c
+		jobs = append(jobs, job)
+	}
+	mainC <- jobs
+}
+
+// 페이지 내의 모든 페이지 수를 얻는다.
+func getPages() int {
+	pages := 0
+	res, err := http.Get(baseURL)
+	utils.CheckErr(err)
+	utils.CheckCode(res)
+
+	defer res.Body.Close()
+
+	doc, err := goquery.NewDocumentFromReader(res.Body)
+	utils.CheckErr(err)
 
 	doc.Find(".pagination-list").Each(func(i int, s *goquery.Selection) {
 		pages = s.Find("li").Length()
@@ -85,14 +108,18 @@ func getPages() int {
 	return pages
 }
 
-func checkErr(err error) {
-	if err != nil {
-		log.Fatalln(err)
-	}
-}
+func main() {
+	var jobs []extractedJob
+	c := make(chan []extractedJob)
+	totalPages := getPages() - 1 // 여기선 페이지 수만 얻음. 화살표 버튼이 있어서 하나 빼야 함.
 
-func checkCode(res *http.Response) {
-	if res.StatusCode != 200 {
-		log.Fatalln("Request Failed with Status:", res.StatusCode)
+	for i := 0; i < totalPages; i++ {
+		go getPage(i, c)
 	}
+	for i := 0; i < totalPages; i++ {
+		extractedJobs := <-c
+		jobs = append(jobs, extractedJobs...)
+	}
+	writeJobs(jobs)
+	fmt.Println("Done, Extracted!", len(jobs))
 }
