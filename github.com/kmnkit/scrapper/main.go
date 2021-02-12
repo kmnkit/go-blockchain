@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/PuerkitoBio/goquery"
 	"github.com/kmnkit/scrapper/utils"
@@ -21,6 +22,17 @@ type extractedJob struct {
 
 var baseURL string = "https://kr.indeed.com/jobs?q=python&l=seoul"
 
+func outputFinally(c chan []string, j extractedJob) {
+	jobSlice := []string{
+		"https://kr.indeed.com/viewjob?jk=" + j.id,
+		j.title,
+		j.location,
+		j.salary,
+		j.summary,
+	}
+	c <- jobSlice
+}
+
 // 구인 내용들을 csv 파일에 쓴다.
 func writeJobs(jobs []extractedJob) {
 	file, err := os.Create("jobs.csv")
@@ -32,16 +44,13 @@ func writeJobs(jobs []extractedJob) {
 	headers := []string{"Link", "Title", "Location", "Salary", "Summary"}
 	wErr := w.Write(headers)
 	utils.CheckErr(wErr)
-
+	c := make(chan []string)
+	// job의 type은 extractedJob
 	for _, job := range jobs {
-		jobSlice := []string{
-			"https://kr.indeed.com/viewjob?jk=" + job.id,
-			job.title,
-			job.location,
-			job.salary,
-			job.summary,
-		}
-		jwErr := w.Write(jobSlice)
+		go outputFinally(c, job)
+	}
+	for i := 0; i < len(jobs); i++ {
+		jwErr := w.Write(<-c)
 		utils.CheckErr(jwErr)
 	}
 }
@@ -109,6 +118,7 @@ func getPages() int {
 }
 
 func main() {
+	start := time.Now()
 	var jobs []extractedJob
 	c := make(chan []extractedJob)
 	totalPages := getPages() - 1 // 여기선 페이지 수만 얻음. 화살표 버튼이 있어서 하나 빼야 함.
@@ -121,5 +131,7 @@ func main() {
 		jobs = append(jobs, extractedJobs...)
 	}
 	writeJobs(jobs)
+	elapsedTime := time.Since(start)
+	fmt.Println("실행시간:", elapsedTime.Seconds())
 	fmt.Println("Done, Extracted!", len(jobs))
 }
