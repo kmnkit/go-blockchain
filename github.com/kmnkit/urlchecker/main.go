@@ -6,14 +6,27 @@ import (
 )
 
 func main() {
-	// 메인함수의 역할이 종료될 때 그냥 다 끝나버림
-	go sexyCount("nico")
-	sexyCount("flynn")
+	c := make(chan string)
+	people := [5]string{"nico", "flynn", "dal", "japanGuy", "larry"}
+	for _, person := range people {
+		go isSexy(person, c)
+	}
+	for i := 0; i < len(people); i++ {
+		fmt.Println(<-c)
+	}
+	// resultOne := <-c
+	// resultTwo := <-c
+	// resultThree := <-c
+	// resultFour := <-c
+	// resultFive := <-c
+	// fmt.Println("Received this Message:", resultOne)
+	// fmt.Println("Received this Message:", resultTwo)
+	// fmt.Println("Received this Message:", resultThree)
+	// fmt.Println("Received this Message:", resultFour)
+	// fmt.Println("Received this Message:", resultFive)
 }
 
-func sexyCount(person string) {
-	for i := 0; i < 10; i++ {
-		fmt.Println(person, "is sexy", i)
-		time.Sleep(time.Second)
-	}
+func isSexy(person string, c chan string) {
+	time.Sleep(time.Second * 1)
+	c <- person + " is Sexy"
 }
