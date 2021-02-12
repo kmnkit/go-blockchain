@@ -6,7 +6,8 @@ import (
 )
 
 func main() {
-	c := make(chan string)
+	c := make(chan string) // 어느 형태의 데이터를 받을지 구체적으로 짖어해 줘야 함.
+
 	people := [5]string{"nico", "flynn", "dal", "japanGuy", "larry"}
 	for _, person := range people {
 		go isSexy(person, c)
